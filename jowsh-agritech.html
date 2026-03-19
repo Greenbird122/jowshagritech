@@ -3,30 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Jowsh Agritech · Smart Farming</title>
+    <title>Jowsh Agritech · Smart Farming with OTP</title>
     <!-- Tailwind (lightweight CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter + Space Grotesk -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
     <!-- Lucide icons (dynamic) -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <!-- Custom styles for fine tuning -->
     <style>
         * { font-family: 'Inter', sans-serif; }
         .font-display { font-family: 'Space Grotesk', sans-serif; }
-        /* smooth transitions */
-        .fade-enter { opacity: 0; }
-        .fade-enter-active { opacity: 1; transition: opacity 300ms; }
-        .fade-exit { opacity: 1; }
-        .fade-exit-active { opacity: 0; transition: opacity 300ms; }
-
         .modal-backdrop { backdrop-filter: blur(8px); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* custom animation for mobile menu */
         .slide-in { transform: translateX(0); transition: transform 0.3s ease-out; }
         .slide-out { transform: translateX(100%); transition: transform 0.3s ease-in; }
-
-        [data-lucide] { pointer-events: none; } /* icons are decorative */
+        [data-lucide] { pointer-events: none; }
+        /* simple spinner animation */
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-white text-slate-800 antialiased selection:bg-orange-100 overflow-x-hidden">
@@ -212,23 +205,41 @@
         <div class="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 text-center text-slate-500 text-[10px] uppercase tracking-widest font-bold">© 2025 JOWSH AGRI-TECH. ALL RIGHTS RESERVED.</div>
     </footer>
 
-    <!-- Modals (Login, Donate, Partner) -->
-    <!-- Login Modal -->
+    <!-- ========== MODALS ========== -->
+    <!-- LOGIN MODAL (with OTP steps) -->
     <div id="login-modal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 hidden">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md modal-close"></div>
         <div class="relative bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl">
-            <div class="bg-slate-900 p-8 text-white"><h3 class="text-2xl font-bold font-display">Client Sign In</h3><p class="text-slate-400 text-sm mt-1">Access your smart farm dashboard</p></div>
-            <div id="login-success" class="hidden p-12 text-center flex-col items-center"><div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4"><i data-lucide="check-circle-2" width="32"></i></div><h4 class="text-xl font-bold text-slate-900">Success!</h4><p id="success-message" class="text-slate-500 mt-2">Signed in.</p></div>
-            <form id="login-form" class="p-8 space-y-5">
-                <input type="email" placeholder="Email Address" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none">
-                <input type="tel" placeholder="Phone Number" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none">
+            <div class="bg-slate-900 p-8 text-white">
+                <h3 class="text-2xl font-bold font-display">Client Sign In</h3>
+                <p class="text-slate-400 text-sm mt-1" id="login-subtitle">Access your smart farm dashboard</p>
+            </div>
+            <!-- Step 1: request OTP -->
+            <div id="login-step1" class="p-8 space-y-5">
+                <input type="tel" id="phone-input" placeholder="Phone number (e.g. 0723100467)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none">
+                <input type="email" id="email-input" placeholder="Email (optional)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none">
+                <!-- Premium selector -->
                 <div id="premium-check" class="p-4 rounded-2xl border-2 cursor-pointer flex items-center gap-4 border-slate-100 bg-white">
                     <div id="premium-radio" class="w-6 h-6 rounded-full border-2 flex items-center justify-center border-slate-300"></div>
                     <h5 class="font-bold text-slate-900 text-sm">Premium Access <span class="text-orange-600 ml-2">Sh20/mo</span></h5>
                 </div>
-                <button type="submit" id="login-submit" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">Sign In</button>
+                <button id="send-otp-btn" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">Send OTP</button>
                 <button type="button" class="modal-close w-full text-slate-400 text-sm font-bold">Close</button>
-            </form>
+            </div>
+            <!-- Step 2: verify OTP (hidden initially) -->
+            <div id="login-step2" class="hidden p-8 space-y-5">
+                <p class="text-sm text-slate-600 mb-2">Enter the 6-digit code sent to <span id="otp-phone-display" class="font-bold"></span></p>
+                <input type="text" id="otp-input" placeholder="6-digit OTP" maxlength="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none text-center text-lg tracking-widest">
+                <button id="verify-otp-btn" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">Verify & Sign In</button>
+                <button id="back-to-step1" class="w-full text-slate-500 text-sm font-semibold flex items-center justify-center gap-1"><i data-lucide="arrow-left" width="16"></i> Back</button>
+                <button type="button" class="modal-close w-full text-slate-400 text-sm font-bold">Close</button>
+            </div>
+            <!-- Success message (replaces steps) -->
+            <div id="login-success" class="hidden p-12 text-center flex flex-col items-center">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4"><i data-lucide="check-circle-2" width="32"></i></div>
+                <h4 class="text-xl font-bold text-slate-900">Success!</h4>
+                <p id="success-message" class="text-slate-500 mt-2"></p>
+            </div>
         </div>
     </div>
 
@@ -275,9 +286,9 @@
 
         // Main vanilla JS interactions
         document.addEventListener('DOMContentLoaded', function() {
-            lucide.createIcons(); // render icons
+            lucide.createIcons();
 
-            // DOM elements
+            // ----- DOM elements -----
             const navbar = document.getElementById('navbar');
             const logoText = document.getElementById('logo-text');
             const navLinks = document.querySelectorAll('.nav-link');
@@ -298,17 +309,27 @@
             const loginModal = document.getElementById('login-modal');
             const donateModal = document.getElementById('donate-modal');
             const partnerModal = document.getElementById('partner-modal');
-            const loginForm = document.getElementById('login-form');
-            const loginSuccess = document.getElementById('login-success');
+
+            // Login modal elements
+            const step1 = document.getElementById('login-step1');
+            const step2 = document.getElementById('login-step2');
+            const loginSuccessDiv = document.getElementById('login-success');
+            const phoneInput = document.getElementById('phone-input');
+            const emailInput = document.getElementById('email-input');
             const premiumCheck = document.getElementById('premium-check');
             const premiumRadio = document.getElementById('premium-radio');
-            const loginSubmit = document.getElementById('login-submit');
+            const sendOtpBtn = document.getElementById('send-otp-btn');
+            const verifyOtpBtn = document.getElementById('verify-otp-btn');
+            const otpInput = document.getElementById('otp-input');
+            const otpPhoneDisplay = document.getElementById('otp-phone-display');
+            const backToStep1 = document.getElementById('back-to-step1');
             const successMsg = document.getElementById('success-message');
-            
-            let isPremium = false;
-            let isSubmitting = false;
+            const loginSubtitle = document.getElementById('login-subtitle');
 
-            // Navbar scroll effect
+            let isPremium = false;
+            let currentPhone = '';
+
+            // ----- Navbar scroll effect (as before) -----
             window.addEventListener('scroll', function() {
                 if (window.scrollY > 20) {
                     navbar.classList.add('bg-white/95', 'backdrop-blur-md', 'shadow-md', 'py-3');
@@ -321,7 +342,6 @@
                             link.classList.add('text-slate-700');
                         }
                     });
-                    // special handling for donate/partner (keep white originally but now change)
                     const donateBtn = document.getElementById('desktop-donate');
                     const partnerBtn = document.getElementById('desktop-partner');
                     if (donateBtn) { donateBtn.classList.remove('text-white'); donateBtn.classList.add('text-rose-600'); }
@@ -342,7 +362,7 @@
                 }
             });
 
-            // View navigation
+            // ----- View navigation (home/projects) -----
             function showHome() { homeView.classList.remove('hidden'); projectsView.classList.add('hidden'); }
             function showProjects() { homeView.classList.add('hidden'); projectsView.classList.remove('hidden'); window.scrollTo(0,0); }
 
@@ -361,7 +381,7 @@
             if (mobileAbout) mobileAbout.addEventListener('click', scrollToAbout);
             if (heroMission) heroMission.addEventListener('click', scrollToAbout);
 
-            // Mobile menu
+            // ----- Mobile menu -----
             function openMenu() { menuPanel.classList.remove('translate-x-full'); menuOverlay.classList.remove('hidden'); }
             function closeMenu() { menuPanel.classList.add('translate-x-full'); menuOverlay.classList.add('hidden'); }
             menuToggle.addEventListener('click', openMenu);
@@ -369,43 +389,140 @@
             menuOverlay.addEventListener('click', closeMenu);
             document.querySelectorAll('.mobile-nav-item').forEach(item => item.addEventListener('click', closeMenu));
 
-            // Modals
-            function openModal(modal) { modal.classList.remove('hidden'); }
-            function closeModals() { 
-                loginModal.classList.add('hidden'); donateModal.classList.add('hidden'); partnerModal.classList.add('hidden');
-                loginForm.classList.remove('hidden'); loginSuccess.classList.add('hidden'); 
+            // ----- Modal open/close helpers -----
+            function closeAllModals() {
+                loginModal.classList.add('hidden');
+                donateModal.classList.add('hidden');
+                partnerModal.classList.add('hidden');
+                // reset login modal to step1
+                step1.classList.remove('hidden');
+                step2.classList.add('hidden');
+                loginSuccessDiv.classList.add('hidden');
+                phoneInput.value = '';
+                emailInput.value = '';
+                otpInput.value = '';
+                isPremium = false;
+                premiumRadio.className = 'w-6 h-6 rounded-full border-2 flex items-center justify-center border-slate-300';
+                premiumRadio.innerHTML = '';
+                premiumCheck.classList.remove('border-orange-500', 'bg-orange-50');
+                premiumCheck.classList.add('border-slate-100', 'bg-white');
+                loginSubtitle.innerText = 'Access your smart farm dashboard';
             }
-            document.querySelectorAll('#desktop-donate, #mobile-donate').forEach(el => el.addEventListener('click', () => { closeModals(); openModal(donateModal); }));
-            document.querySelectorAll('#desktop-partner, #mobile-partner').forEach(el => el.addEventListener('click', () => { closeModals(); openModal(partnerModal); }));
+            document.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', closeAllModals));
+
+            // Open specific modals
+            document.querySelectorAll('#desktop-donate, #mobile-donate').forEach(el => el.addEventListener('click', () => { closeAllModals(); donateModal.classList.remove('hidden'); }));
+            document.querySelectorAll('#desktop-partner, #mobile-partner').forEach(el => el.addEventListener('click', () => { closeAllModals(); partnerModal.classList.remove('hidden'); }));
             document.querySelectorAll('#desktop-login, #mobile-login').forEach(el => el.addEventListener('click', () => { 
-                closeModals(); openModal(loginModal); 
-                // reset login modal
-                loginForm.classList.remove('hidden'); loginSuccess.classList.add('hidden'); isPremium = false; premiumRadio.className = 'w-6 h-6 rounded-full border-2 flex items-center justify-center border-slate-300'; premiumCheck.classList.remove('border-orange-500', 'bg-orange-50'); premiumCheck.classList.add('border-slate-100', 'bg-white');
+                closeAllModals(); 
+                loginModal.classList.remove('hidden');
+                // ensure step1 visible
+                step1.classList.remove('hidden');
+                step2.classList.add('hidden');
+                loginSuccessDiv.classList.add('hidden');
             }));
-            document.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', closeModals));
 
             // Premium toggle
             premiumCheck.addEventListener('click', () => {
                 isPremium = !isPremium;
-                if (isPremium) { premiumRadio.className = 'w-6 h-6 rounded-full border-2 flex items-center justify-center border-orange-500 bg-orange-500'; premiumRadio.innerHTML = '<i data-lucide="check-circle-2" width="14" class="text-white"></i>'; premiumCheck.classList.add('border-orange-500', 'bg-orange-50'); premiumCheck.classList.remove('border-slate-100', 'bg-white'); }
-                else { premiumRadio.className = 'w-6 h-6 rounded-full border-2 flex items-center justify-center border-slate-300'; premiumRadio.innerHTML = ''; premiumCheck.classList.remove('border-orange-500', 'bg-orange-50'); premiumCheck.classList.add('border-slate-100', 'bg-white'); }
+                if (isPremium) {
+                    premiumRadio.className = 'w-6 h-6 rounded-full border-2 flex items-center justify-center border-orange-500 bg-orange-500';
+                    premiumRadio.innerHTML = '<i data-lucide="check-circle-2" width="14" class="text-white"></i>';
+                    premiumCheck.classList.add('border-orange-500', 'bg-orange-50');
+                    premiumCheck.classList.remove('border-slate-100', 'bg-white');
+                } else {
+                    premiumRadio.className = 'w-6 h-6 rounded-full border-2 flex items-center justify-center border-slate-300';
+                    premiumRadio.innerHTML = '';
+                    premiumCheck.classList.remove('border-orange-500', 'bg-orange-50');
+                    premiumCheck.classList.add('border-slate-100', 'bg-white');
+                }
                 lucide.createIcons();
             });
 
-            // Login form submit
-            loginForm.addEventListener('submit', function(e) {
+            // ----- Mock API functions (replace with real fetch when deploying) -----
+            function mockSendOtp(phone) {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        // always succeed, but you could add validation
+                        resolve({ success: true, message: 'OTP sent' });
+                    }, 1500);
+                });
+            }
+            function mockVerifyOtp(phone, otp) {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        // Accept any 6-digit code for demo
+                        if (otp && otp.length === 6) resolve({ success: true });
+                        else resolve({ success: false, message: 'Invalid OTP' });
+                    }, 1500);
+                });
+            }
+
+            // Step1: Send OTP
+            sendOtpBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                if (isSubmitting) return;
-                isSubmitting = true;
-                loginSubmit.innerHTML = '<i data-lucide="loader-2" width="20" class="animate-spin"></i> Processing...';
+                const phone = phoneInput.value.trim();
+                if (!phone) {
+                    alert('Please enter phone number');
+                    return;
+                }
+                currentPhone = phone;
+                // Disable button, show spinner
+                sendOtpBtn.disabled = true;
+                sendOtpBtn.innerHTML = '<i data-lucide="loader-2" width="20" class="animate-spin"></i> Sending...';
                 lucide.createIcons();
-                setTimeout(() => {
-                    loginForm.classList.add('hidden');
-                    loginSuccess.classList.remove('hidden');
-                    successMsg.innerText = isPremium ? "Premium Subscription Active (Sh20 Charged)" : "Successfully signed in.";
-                    isSubmitting = false;
-                    setTimeout(() => { closeModals(); }, 2000);
-                }, 1500);
+
+                const result = await mockSendOtp(phone);
+                if (result.success) {
+                    // move to step2
+                    step1.classList.add('hidden');
+                    step2.classList.remove('hidden');
+                    otpPhoneDisplay.innerText = phone;
+                    loginSubtitle.innerText = 'Verify OTP sent to your phone';
+                } else {
+                    alert('Failed to send OTP. Try again.');
+                }
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.innerHTML = 'Send OTP';
+                lucide.createIcons();
+            });
+
+            // Back to step1
+            backToStep1.addEventListener('click', () => {
+                step2.classList.add('hidden');
+                step1.classList.remove('hidden');
+                loginSubtitle.innerText = 'Access your smart farm dashboard';
+                otpInput.value = '';
+            });
+
+            // Step2: Verify OTP
+            verifyOtpBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const otp = otpInput.value.trim();
+                if (!otp || otp.length !== 6) {
+                    alert('Please enter a valid 6-digit OTP');
+                    return;
+                }
+                verifyOtpBtn.disabled = true;
+                verifyOtpBtn.innerHTML = '<i data-lucide="loader-2" width="20" class="animate-spin"></i> Verifying...';
+                lucide.createIcons();
+
+                const result = await mockVerifyOtp(currentPhone, otp);
+                if (result.success) {
+                    // show success
+                    step2.classList.add('hidden');
+                    loginSuccessDiv.classList.remove('hidden');
+                    const premiumText = isPremium ? 'Premium Subscription Active (Sh20 Charged)' : 'Successfully signed in.';
+                    successMsg.innerText = premiumText;
+                    setTimeout(() => {
+                        closeAllModals();
+                    }, 2000);
+                } else {
+                    alert('Invalid OTP. Please try again.');
+                }
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.innerHTML = 'Verify & Sign In';
+                lucide.createIcons();
             });
 
             // AI chat button
@@ -414,7 +531,7 @@
                 else alert('Chat assistant loading, please click again in a moment.');
             });
 
-            // ensure icons after dynamic changes
+            // ensure icons refresh after dynamic changes
             document.addEventListener('click', function() { setTimeout(() => lucide.createIcons(), 50); });
         });
     </script>
